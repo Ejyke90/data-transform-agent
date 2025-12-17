@@ -109,7 +109,7 @@ class XSDParser:
         # Find the root Document element
         document_element = self._find_document_element()
         if document_element is not None:
-            self._parse_element_recursive(document_element, "Document", fields)
+            self._parse_element_recursive(document_element, "", fields)
         
         return fields
     
