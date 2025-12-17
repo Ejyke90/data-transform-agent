@@ -12,10 +12,14 @@ class JSONSchemaConverter:
     """Converter from XSD schema info to JSON Schema."""
 
     # XSD to JSON Schema type mappings
+    # Maps XML Schema built-in types to JSON Schema types
+    # Reference: https://www.w3.org/TR/xmlschema-2/ and https://json-schema.org/
     TYPE_MAPPINGS = {
+        # String types
         "string": "string",
         "normalizedString": "string",
         "token": "string",
+        # Integer types
         "int": "integer",
         "integer": "integer",
         "positiveInteger": "integer",
@@ -29,16 +33,21 @@ class JSONSchemaConverter:
         "unsignedInt": "integer",
         "unsignedShort": "integer",
         "unsignedByte": "integer",
+        # Numeric types (floating point)
         "decimal": "number",
         "float": "number",
         "double": "number",
+        # Boolean type
         "boolean": "boolean",
+        # Date/time types (represented as strings in JSON Schema)
         "date": "string",
         "time": "string",
         "dateTime": "string",
         "duration": "string",
+        # Binary types (represented as strings)
         "base64Binary": "string",
         "hexBinary": "string",
+        # URI type
         "anyURI": "string",
     }
 

@@ -5,13 +5,21 @@ Main orchestrator for schema transformations from XSD to JSON/Avro formats.
 """
 
 import json
-from typing import Dict, Any, Optional, Literal
+from enum import Enum
+from typing import Dict, Any, Optional, Union
 from pathlib import Path
 
 from .xsd_parser import XSDParser
 from .json_converter import JSONSchemaConverter
 from .avro_converter import AvroSchemaConverter
 from .ai_agent import AIAgent
+
+
+class OutputFormat(str, Enum):
+    """Supported output formats for schema transformation."""
+
+    JSON = "json"
+    AVRO = "avro"
 
 
 class SchemaTransformer:
@@ -31,7 +39,7 @@ class SchemaTransformer:
     def transform(
         self,
         xsd_path: str,
-        output_format: Literal["json", "avro"],
+        output_format: Union[OutputFormat, str],
         output_path: Optional[str] = None,
         namespace: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -40,13 +48,23 @@ class SchemaTransformer:
 
         Args:
             xsd_path: Path to the XSD file
-            output_format: Target format ('json' or 'avro')
+            output_format: Target format ('json' or 'avro', or OutputFormat enum)
             output_path: Optional output file path
             namespace: Namespace for Avro schemas
 
         Returns:
             Converted schema as dictionary
         """
+        # Convert string to enum if needed
+        if isinstance(output_format, str):
+            try:
+                output_format = OutputFormat(output_format.lower())
+            except ValueError:
+                raise ValueError(
+                    f"Unsupported output format: {output_format}. "
+                    f"Must be one of: {[f.value for f in OutputFormat]}"
+                )
+
         # Parse XSD
         print(f"Parsing XSD schema from: {xsd_path}")
         parser = XSDParser(xsd_path)
@@ -54,18 +72,18 @@ class SchemaTransformer:
 
         # Get AI suggestions if enabled
         if self.use_ai and self.ai_agent and self.ai_agent.is_available():
-            print(f"Getting AI suggestions for {output_format} conversion...")
-            suggestions = self.ai_agent.suggest_improvements(xsd_info, output_format)
+            print(f"Getting AI suggestions for {output_format.value} conversion...")
+            suggestions = self.ai_agent.suggest_improvements(xsd_info, output_format.value)
             print("AI Suggestions:")
             for suggestion in suggestions.get("suggestions", []):
                 print(f"  - {suggestion}")
 
         # Convert to target format
-        print(f"Converting to {output_format.upper()} schema...")
-        if output_format == "json":
+        print(f"Converting to {output_format.value.upper()} schema...")
+        if output_format == OutputFormat.JSON:
             converter = JSONSchemaConverter(xsd_info)
             converted_schema = converter.convert()
-        elif output_format == "avro":
+        elif output_format == OutputFormat.AVRO:
             converter = AvroSchemaConverter(xsd_info, namespace or "com.example")
             converted_schema = converter.convert()
         else:
@@ -75,7 +93,7 @@ class SchemaTransformer:
         if self.use_ai and self.ai_agent and self.ai_agent.is_available():
             print("Enhancing schema with AI...")
             converted_schema = self.ai_agent.enhance_schema_conversion(
-                xsd_info, output_format, converted_schema
+                xsd_info, output_format.value, converted_schema
             )
 
         # Save to file if output path is provided

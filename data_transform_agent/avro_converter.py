@@ -12,12 +12,16 @@ class AvroSchemaConverter:
     """Converter from XSD schema info to Avro Schema."""
 
     # XSD to Avro type mappings
+    # Maps XML Schema built-in types to Avro primitive types
+    # Reference: https://www.w3.org/TR/xmlschema-2/ and https://avro.apache.org/docs/current/spec.html
     TYPE_MAPPINGS = {
+        # String types
         "string": "string",
         "normalizedString": "string",
         "token": "string",
+        # Integer types (Avro has int for 32-bit, long for 64-bit)
         "int": "int",
-        "integer": "long",
+        "integer": "long",  # xs:integer is unbounded, use long
         "positiveInteger": "long",
         "negativeInteger": "long",
         "nonNegativeInteger": "long",
@@ -29,16 +33,21 @@ class AvroSchemaConverter:
         "unsignedInt": "long",
         "unsignedShort": "int",
         "unsignedByte": "int",
-        "decimal": "double",
+        # Numeric types (Avro float for 32-bit, double for 64-bit)
+        "decimal": "double",  # xs:decimal is arbitrary precision, use double
         "float": "float",
         "double": "double",
+        # Boolean type
         "boolean": "boolean",
+        # Date/time types (represented as strings in Avro)
         "date": "string",
         "time": "string",
         "dateTime": "string",
         "duration": "string",
+        # Binary types (Avro bytes type)
         "base64Binary": "bytes",
         "hexBinary": "bytes",
+        # URI type
         "anyURI": "string",
     }
 

@@ -13,14 +13,19 @@ import json
 class AIAgent:
     """AI Agent for intelligent schema transformation."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    # Default model to use for OpenAI API calls
+    DEFAULT_MODEL = "gpt-4"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """
         Initialize the AI agent.
 
         Args:
             api_key: OpenAI API key (optional, can use OPENAI_API_KEY env var)
+            model: OpenAI model to use (default: gpt-4)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.model = model or os.getenv("OPENAI_MODEL", self.DEFAULT_MODEL)
         self.client = None
 
         # Only initialize OpenAI client if API key is available
@@ -58,7 +63,7 @@ class AIAgent:
         try:
             prompt = self._build_enhancement_prompt(xsd_info, target_format, converted_schema)
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
@@ -111,7 +116,7 @@ Please provide:
 """
 
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
