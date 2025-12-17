@@ -43,13 +43,11 @@ class AVROParser:
         
         self.fields = []
         
-        # Start parsing from root record
+        # Start parsing from root record - don't add record to path yet
         if self.schema.get('type') == 'record':
-            self._parse_record(
-                self.schema,
-                self.schema.get('name', 'Root'),
-                ''
-            )
+            # Parse the fields directly without adding the root record name to path
+            for field_def in self.schema.get('fields', []):
+                self._parse_field(field_def, '')
         
         return self.fields
     
