@@ -1,0 +1,90 @@
+[
+  {
+    "type": "record",
+    "name": "PersonType",
+    "namespace": "com.example.person",
+    "fields": [
+      {
+        "name": "{http://example.com/person}firstName",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}lastName",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}age",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}email",
+        "type": [
+          "null",
+          "string"
+        ],
+        "default": null
+      },
+      {
+        "name": "{http://example.com/person}address",
+        "type": [
+          "null",
+          "string"
+        ],
+        "default": null
+      },
+      {
+        "name": "{http://example.com/person}phoneNumbers",
+        "type": [
+          "null",
+          {
+            "type": "array",
+            "items": "string"
+          }
+        ],
+        "default": null
+      },
+      {
+        "name": "id",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "AddressType",
+    "namespace": "com.example.person",
+    "fields": [
+      {
+        "name": "{http://example.com/person}street",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}city",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}state",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}zipCode",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/person}country",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "Person",
+    "namespace": "com.example.person",
+    "fields": [
+      {
+        "name": "value",
+        "type": "string"
+      }
+    ]
+  }
+]

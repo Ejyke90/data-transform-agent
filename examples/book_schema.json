@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://example.com/book",
+  "type": "object",
+  "properties": {
+    "Book": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "BookType": {
+      "type": "object",
+      "properties": {
+        "{http://example.com/book}title": {
+          "type": "string"
+        },
+        "{http://example.com/book}author": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "{http://example.com/book}isbn": {
+          "type": "string"
+        },
+        "{http://example.com/book}publishDate": {
+          "type": "string"
+        },
+        "{http://example.com/book}price": {
+          "type": "string"
+        },
+        "{http://example.com/book}inStock": {
+          "type": "string"
+        },
+        "{http://example.com/book}description": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "{http://example.com/book}title",
+        "{http://example.com/book}author",
+        "{http://example.com/book}isbn",
+        "{http://example.com/book}publishDate",
+        "{http://example.com/book}price",
+        "{http://example.com/book}inStock"
+      ]
+    },
+    "AuthorType": {
+      "type": "object",
+      "properties": {
+        "{http://example.com/book}name": {
+          "type": "string"
+        },
+        "{http://example.com/book}nationality": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "{http://example.com/book}name"
+      ]
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://example.com/person",
+  "type": "object",
+  "properties": {
+    "Person": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "PersonType": {
+      "type": "object",
+      "properties": {
+        "{http://example.com/person}firstName": {
+          "type": "string"
+        },
+        "{http://example.com/person}lastName": {
+          "type": "string"
+        },
+        "{http://example.com/person}age": {
+          "type": "string"
+        },
+        "{http://example.com/person}email": {
+          "type": "string"
+        },
+        "{http://example.com/person}address": {
+          "type": "string"
+        },
+        "{http://example.com/person}phoneNumbers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "{http://example.com/person}firstName",
+        "{http://example.com/person}lastName",
+        "{http://example.com/person}age",
+        "id"
+      ]
+    },
+    "AddressType": {
+      "type": "object",
+      "properties": {
+        "{http://example.com/person}street": {
+          "type": "string"
+        },
+        "{http://example.com/person}city": {
+          "type": "string"
+        },
+        "{http://example.com/person}state": {
+          "type": "string"
+        },
+        "{http://example.com/person}zipCode": {
+          "type": "string"
+        },
+        "{http://example.com/person}country": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "{http://example.com/person}street",
+        "{http://example.com/person}city",
+        "{http://example.com/person}state",
+        "{http://example.com/person}zipCode",
+        "{http://example.com/person}country"
+      ]
+    }
+  }
+}
