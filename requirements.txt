@@ -1,0 +1,15 @@
+# Python dependencies for ISO 20022 Schema Agent
+
+# Core dependencies
+lxml>=4.9.0          # XML processing (alternative to ElementTree with better XSD support)
+
+# Optional dependencies for enhanced functionality
+pandas>=2.0.0        # Data manipulation (for CSV processing)
+
+# Development dependencies (install with: pip install -r requirements-dev.txt)
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0
+flask>=2.3.0

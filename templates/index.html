@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 20022 Schema Agent - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+        
+        .upload-section.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .form-group select,
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group select:focus,
+        .form-group input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th {
+            background: #f8f9ff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        table tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .download-section {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 25px 0;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #c33;
+        }
+        
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #3c3;
+        }
+        
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            margin: 25px 0 15px 0;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-mandatory {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .badge-optional {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 ISO 20022 Schema Agent</h1>
+            <p>Automated Field Extraction & Analysis Tool</p>
+        </div>
+        
+        <div class="card">
+            <form id="analysisForm">
+                <div class="info-box">
+                    <strong>📋 Instructions:</strong> Select an existing schema or upload a new XSD/AVRO file to analyze ISO 20022 payment message structures. Supports both XSD (.xsd) and AVRO (.avsc, .avro) formats.
+                </div>
+                
+                <div class="form-group">
+                    <label>📁 Select Existing Schema</label>
+                    <select name="existing_schema" id="existingSchema">
+                        <option value="">-- Choose a schema --</option>
+                        {% for schema in schemas %}
+                        <option value="{{ schema }}">{{ schema }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0; color: #999;">
+                    <strong>— OR —</strong>
+                </div>
+                
+                <div class="upload-section" id="uploadSection">
+                    <div class="upload-icon">📤</div>
+                    <h3>Upload New Schema File</h3>
+                    <p>Drag & drop or click to select XSD (.xsd) or AVRO (.avsc, .avro) file</p>
+                    <input type="file" name="schema_file" id="schemaFile" accept=".xsd,.avsc,.avro" style="display: none;">
+                    <p id="fileName" style="margin-top: 10px; color: #667eea; font-weight: 600;"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>📊 Output Format</label>
+                    <select name="format" id="format">
+                        <option value="csv">CSV (Excel/Numbers compatible)</option>
+                        <option value="json">JSON (Structured data)</option>
+                        <option value="markdown">Markdown (Documentation)</option>
+                    </select>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" name="detailed" id="detailed" checked>
+                    <label for="detailed">
+                        <strong>Show detailed breakdown</strong> (recommended for verification)
+                    </label>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                        🔍 Analyze Schema
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        🔄 Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p><strong>Analyzing schema...</strong></p>
+            <p>This may take a few seconds for large schemas.</p>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="card">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📊 Analysis Results</h2>
+                
+                <div class="success" id="successMessage"></div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="number" id="totalFields">-</div>
+                        <div class="label">Total Fields</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="mandatoryFields">-</div>
+                        <div class="label">Mandatory Fields</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="optionalFields">-</div>
+                        <div class="label">Optional Fields</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="codeListFields">-</div>
+                        <div class="label">Code List Fields</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="patternFields">-</div>
+                        <div class="label">Pattern Fields</div>
+                    </div>
+                </div>
+                
+                <div class="download-section">
+                    <h3 style="margin-bottom: 15px;">✅ Analysis Complete!</h3>
+                    <p style="margin-bottom: 20px;">Your file is ready for download</p>
+                    <a href="#" id="downloadLink" class="download-btn">
+                        ⬇️ Download Results
+                    </a>
+                </div>
+                
+                <div class="section-title">📌 Sample Mandatory Fields</div>
+                <div class="table-container">
+                    <table id="mandatoryTable">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Path</th>
+                                <th>Multiplicity</th>
+                                <th>Constraints</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="section-title">🔹 Sample Optional Fields</div>
+                <div class="table-container">
+                    <table id="optionalTable">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Path</th>
+                                <th>Multiplicity</th>
+                                <th>Constraints</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="section-title" id="codeListSection" style="display: none;">📝 Sample Code List Fields</div>
+                <div class="table-container" id="codeListTableContainer" style="display: none;">
+                    <table id="codeListTable">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Allowed Codes</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorMessage"></div>
+    </div>
+    
+    <script>
+        const uploadSection = document.getElementById('uploadSection');
+        const schemaFile = document.getElementById('schemaFile');
+        const fileName = document.getElementById('fileName');
+        const analysisForm = document.getElementById('analysisForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Upload section click handler
+        uploadSection.addEventListener('click', () => {
+            schemaFile.click();
+        });
+        
+        // File selection handler
+        schemaFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileName.textContent = `Selected: ${e.target.files[0].name}`;
+                document.getElementById('existingSchema').value = '';
+            }
+        });
+        
+        // Drag and drop handlers
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                schemaFile.files = e.dataTransfer.files;
+                fileName.textContent = `Selected: ${e.dataTransfer.files[0].name}`;
+                document.getElementById('existingSchema').value = '';
+            }
+        });
+        
+        // Form submission
+        analysisForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(analysisForm);
+            
+            // Show loading
+            loading.classList.add('active');
+            results.classList.remove('active');
+            errorMessage.innerHTML = '';
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Hide loading
+                loading.classList.remove('active');
+                
+                // Show results
+                displayResults(data);
+                results.classList.add('active');
+                
+                // Scroll to results
+                results.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                loading.classList.remove('active');
+                errorMessage.innerHTML = `<div class="card error"><strong>Error:</strong> ${error.message}</div>`;
+                errorMessage.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        
+        function displayResults(data) {
+            // Update success message
+            document.getElementById('successMessage').innerHTML = 
+                `<strong>✓ Success!</strong> Analyzed <code>${data.schema_name}</code> and generated <code>${data.output_file}</code>`;
+            
+            // Update statistics
+            document.getElementById('totalFields').textContent = data.stats.totalFields;
+            document.getElementById('mandatoryFields').textContent = data.stats.mandatoryCount;
+            document.getElementById('optionalFields').textContent = data.stats.optionalCount;
+            document.getElementById('codeListFields').textContent = data.stats.fieldsWithCodeLists;
+            document.getElementById('patternFields').textContent = data.stats.fieldsWithPatterns;
+            
+            // Update download link
+            document.getElementById('downloadLink').href = data.download_url;
+            
+            // Populate mandatory fields table
+            const mandatoryTbody = document.getElementById('mandatoryTable').querySelector('tbody');
+            mandatoryTbody.innerHTML = '';
+            data.mandatory_samples.forEach(field => {
+                const row = mandatoryTbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${field.name}</strong></td>
+                    <td><code style="font-size: 0.8em;">${field.path}</code></td>
+                    <td><span class="badge badge-mandatory">${field.multiplicity}</span></td>
+                    <td>${field.constraints}</td>
+                `;
+            });
+            
+            // Populate optional fields table
+            const optionalTbody = document.getElementById('optionalTable').querySelector('tbody');
+            optionalTbody.innerHTML = '';
+            data.optional_samples.forEach(field => {
+                const row = optionalTbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${field.name}</strong></td>
+                    <td><code style="font-size: 0.8em;">${field.path}</code></td>
+                    <td><span class="badge badge-optional">${field.multiplicity}</span></td>
+                    <td>${field.constraints}</td>
+                `;
+            });
+            
+            // Populate code list fields table
+            if (data.code_list_samples && data.code_list_samples.length > 0) {
+                document.getElementById('codeListSection').style.display = 'block';
+                document.getElementById('codeListTableContainer').style.display = 'block';
+                
+                const codeListTbody = document.getElementById('codeListTable').querySelector('tbody');
+                codeListTbody.innerHTML = '';
+                data.code_list_samples.forEach(field => {
+                    const row = codeListTbody.insertRow();
+                    row.innerHTML = `
+                        <td><strong>${field.name}</strong></td>
+                        <td><code>${field.codes}</code></td>
+                    `;
+                });
+            }
+        }
+        
+        function resetForm() {
+            analysisForm.reset();
+            fileName.textContent = '';
+            results.classList.remove('active');
+            errorMessage.innerHTML = '';
+            loading.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
