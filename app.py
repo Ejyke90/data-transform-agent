@@ -41,6 +41,142 @@ def index():
     return render_template('index.html', schemas=schema_files)
 
 
+@app.route('/compare')
+def compare_page():
+    """Comparison page"""
+    schema_files = []
+    if os.path.exists('schemas'):
+        for f in os.listdir('schemas'):
+            if f.endswith(('.xsd', '.avsc', '.avro')):
+                schema_files.append(f)
+    return render_template('compare.html', schemas=schema_files)
+
+
+@app.route('/compare', methods=['POST'])
+def compare():
+    """Compare XSD and AVRO schemas"""
+    try:
+        xsd_path = None
+        avro_path = None
+        xsd_name = None
+        avro_name = None
+        
+        # Handle XSD
+        if 'xsd_file' in request.files and request.files['xsd_file'].filename:
+            file = request.files['xsd_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                xsd_path = filepath
+                xsd_name = filename
+        elif 'existing_xsd' in request.form and request.form['existing_xsd']:
+            xsd_name = request.form['existing_xsd']
+            xsd_path = os.path.join('schemas', xsd_name)
+        
+        # Handle AVRO
+        if 'avro_file' in request.files and request.files['avro_file'].filename:
+            file = request.files['avro_file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                avro_path = filepath
+                avro_name = filename
+        elif 'existing_avro' in request.form and request.form['existing_avro']:
+            avro_name = request.form['existing_avro']
+            avro_path = os.path.join('schemas', avro_name)
+        
+        if not xsd_path or not avro_path:
+            return jsonify({'error': 'Please provide both XSD and AVRO files.'}), 400
+        
+        # Analyze both
+        xsd_agent = ISO20022SchemaAgent()
+        xsd_agent.load_schema(xsd_path)
+        xsd_fields = xsd_agent.extract_fields()
+        
+        avro_agent = ISO20022SchemaAgent()
+        avro_agent.load_schema(avro_path)
+        avro_fields = avro_agent.extract_fields()
+        
+        # Normalize paths and match
+        def normalize_path(path, format_type):
+            if format_type == 'xsd':
+                return path.replace('/', '.')
+            return path
+        
+        xsd_map = {normalize_path(f.path, 'xsd'): f for f in xsd_fields}
+        avro_map = {f.path: f for f in avro_fields}
+        
+        all_keys = set(xsd_map.keys()) | set(avro_map.keys())
+        
+        comparison_rows = []
+        matched_count = 0
+        xsd_only_count = 0
+        avro_only_count = 0
+        
+        for key in sorted(all_keys):
+            xsd_field = xsd_map.get(key)
+            avro_field = avro_map.get(key)
+            
+            row = {
+                'normalized_path': key,
+                'xsd_exists': xsd_field is not None,
+                'avro_exists': avro_field is not None,
+                'xsd_name': xsd_field.name if xsd_field else '',
+                'avro_name': avro_field.name if avro_field else '',
+                'xsd_path': xsd_field.path if xsd_field else '',
+                'avro_path': avro_field.path if avro_field else '',
+                'xsd_multiplicity': xsd_field.multiplicity if xsd_field else '',
+                'avro_multiplicity': avro_field.multiplicity if avro_field else '',
+                'xsd_requirement': xsd_field.requirement.value if xsd_field else '',
+                'avro_requirement': avro_field.requirement.value if avro_field else '',
+                'match_status': 'both' if (xsd_field and avro_field) else ('xsd_only' if xsd_field else 'avro_only')
+            }
+            
+            comparison_rows.append(row)
+            
+            if xsd_field and avro_field:
+                matched_count += 1
+            elif xsd_field:
+                xsd_only_count += 1
+            else:
+                avro_only_count += 1
+        
+        # Export CSV
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_file = f"comparison_{timestamp}.csv"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_file)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(f"# XSD: {xsd_name}, AVRO: {avro_name}\n")
+            f.write(f"# Matched: {matched_count}, XSD Only: {xsd_only_count}, AVRO Only: {avro_only_count}\n#\n")
+            f.write("FieldName,XSD_Path,AVRO_Path,XSD_Mult,AVRO_Mult,XSD_Req,AVRO_Req,Status\n")
+            
+            for row in comparison_rows:
+                name = row['xsd_name'] or row['avro_name']
+                f.write(f"{name},{row['xsd_path']},{row['avro_path']},{row['xsd_multiplicity']},{row['avro_multiplicity']},{row['xsd_requirement']},{row['avro_requirement']},{row['match_status']}\n")
+        
+        return jsonify({
+            'success': True,
+            'xsd_schema': xsd_name,
+            'avro_schema': avro_name,
+            'output_file': output_file,
+            'download_url': url_for('download', filename=output_file),
+            'stats': {
+                'total_fields': len(comparison_rows),
+                'matched': matched_count,
+                'xsd_only': xsd_only_count,
+                'avro_only': avro_only_count,
+                'match_percentage': round(matched_count / len(comparison_rows) * 100, 1) if comparison_rows else 0
+            },
+            'sample_rows': comparison_rows[:20]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     """Analyze uploaded or selected schema"""
