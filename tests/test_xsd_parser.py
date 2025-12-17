@@ -46,7 +46,8 @@ def test_extract_elements(person_xsd_path):
     info = parser.get_schema_info()
 
     elements = info["elements"]
-    assert "Person" in elements or len(elements) >= 0
+    assert len(elements) > 0
+    assert "Person" in elements
 
 
 def test_extract_types(person_xsd_path):
