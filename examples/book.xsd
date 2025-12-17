@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/book"
+           xmlns:tns="http://example.com/book"
+           elementFormDefault="qualified">
+
+    <!-- Book catalog schema example -->
+    <xs:element name="Book" type="tns:BookType"/>
+
+    <xs:complexType name="BookType">
+        <xs:sequence>
+            <xs:element name="title" type="xs:string"/>
+            <xs:element name="author" type="tns:AuthorType" maxOccurs="unbounded"/>
+            <xs:element name="isbn" type="xs:string"/>
+            <xs:element name="publishDate" type="xs:date"/>
+            <xs:element name="price" type="xs:decimal"/>
+            <xs:element name="inStock" type="xs:boolean"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="genre" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="AuthorType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="nationality" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

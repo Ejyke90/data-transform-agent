@@ -1,0 +1,82 @@
+[
+  {
+    "type": "record",
+    "name": "BookType",
+    "namespace": "com.example.book",
+    "fields": [
+      {
+        "name": "{http://example.com/book}title",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/book}author",
+        "type": {
+          "type": "array",
+          "items": "string"
+        }
+      },
+      {
+        "name": "{http://example.com/book}isbn",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/book}publishDate",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/book}price",
+        "type": "double"
+      },
+      {
+        "name": "{http://example.com/book}inStock",
+        "type": "boolean"
+      },
+      {
+        "name": "{http://example.com/book}description",
+        "type": [
+          "null",
+          "string"
+        ],
+        "default": null
+      },
+      {
+        "name": "genre",
+        "type": [
+          "null",
+          "string"
+        ],
+        "default": null
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "AuthorType",
+    "namespace": "com.example.book",
+    "fields": [
+      {
+        "name": "{http://example.com/book}name",
+        "type": "string"
+      },
+      {
+        "name": "{http://example.com/book}nationality",
+        "type": [
+          "null",
+          "string"
+        ],
+        "default": null
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "Book",
+    "namespace": "com.example.book",
+    "fields": [
+      {
+        "name": "value",
+        "type": "string"
+      }
+    ]
+  }
+]

@@ -1,0 +1,45 @@
+[project]
+name = "data-transform-agent"
+version = "0.1.0"
+description = "AI agent to transform data schemas from XSD to JSON and Avro formats"
+authors = [{name = "Data Transform Agent Team"}]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "lxml>=4.9.0",
+    "xmlschema>=2.5.0",
+    "jsonschema>=4.19.0",
+    "avro>=1.11.0",
+    "click>=8.1.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+data-transform = "data_transform_agent.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
