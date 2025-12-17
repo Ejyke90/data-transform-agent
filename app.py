@@ -30,7 +30,7 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    """Main page"""
+    """Main unified page with tabs for analyze and compare"""
     # List existing schemas
     schema_files = []
     if os.path.exists('schemas'):
@@ -39,17 +39,6 @@ def index():
                 schema_files.append(f)
     
     return render_template('index.html', schemas=schema_files)
-
-
-@app.route('/compare')
-def compare_page():
-    """Comparison page"""
-    schema_files = []
-    if os.path.exists('schemas'):
-        for f in os.listdir('schemas'):
-            if f.endswith(('.xsd', '.avsc', '.avro')):
-                schema_files.append(f)
-    return render_template('compare.html', schemas=schema_files)
 
 
 @app.route('/compare', methods=['POST'])

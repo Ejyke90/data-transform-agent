@@ -1,0 +1,98 @@
+{
+  "type": "record",
+  "name": "Pain001Message",
+  "namespace": "com.financial.iso20022",
+  "doc": "Simplified Avro schema for ISO 20022 pain.001 Credit Transfer Initiation",
+  "fields": [
+    {
+      "name": "GrpHdr",
+      "doc": "Group Header: Common parameters for all individual payments",
+      "type": {
+        "type": "record",
+        "name": "GroupHeader",
+        "fields": [
+          {"name": "MsgId", "type": "string", "doc": "Message Identification"},
+          {"name": "CreDtTm", "type": "long", "logicalType": "timestamp-millis", "doc": "Creation Date Time"},
+          {"name": "NbOfTxs", "type": "int", "doc": "Number of Transactions"},
+          {"name": "CtrlSum", "type": ["null", "double"], "default": null, "doc": "Control Sum"}
+        ]
+      }
+    },
+    {
+      "name": "PmtInf",
+      "doc": "Payment Information: Details regarding the debtor and payment execution",
+      "type": {
+        "type": "record",
+        "name": "PaymentInformation",
+        "fields": [
+          {"name": "PmtInfId", "type": "string", "doc": "Payment Information Identification"},
+          {"name": "PmtMtd", "type": {"type": "enum", "name": "PaymentMethod", "symbols": ["TRF", "CHK", "TRA"]}},
+          {"name": "ReqdExctnDt", "type": "string", "doc": "Requested Execution Date"},
+          {
+            "name": "Dbtr",
+            "type": {
+              "type": "record",
+              "name": "PartyIdentification",
+              "fields": [
+                {"name": "Nm", "type": "string", "doc": "Name of the Debtor"},
+                {"name": "PstlAdr", "type": ["null", "string"], "default": null}
+              ]
+            }
+          },
+          {
+            "name": "DbtrAcct",
+            "type": {
+              "type": "record",
+              "name": "CashAccount",
+              "fields": [
+                {"name": "IBAN", "type": "string", "doc": "International Bank Account Number"}
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CdtTrfTxInf",
+      "doc": "List of Credit Transfer Transaction Information (The actual transfers)",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "CreditTransferTransaction",
+          "fields": [
+            {
+              "name": "PmtId",
+              "type": {
+                "type": "record",
+                "name": "PaymentIdentification",
+                "fields": [
+                  {"name": "EndToEndId", "type": "string", "doc": "Unique end-to-end identifier"}
+                ]
+              }
+            },
+            {
+              "name": "InstdAmt",
+              "type": {
+                "type": "record",
+                "name": "Amount",
+                "fields": [
+                  {"name": "Value", "type": "double"},
+                  {"name": "Ccy", "type": "string", "doc": "Currency Code (e.g., CAD, COP)"}
+                ]
+              }
+            },
+            {
+              "name": "Cdtr",
+              "type": "com.financial.iso20022.PartyIdentification"
+            },
+            {
+              "name": "CdtrAcct",
+              "type": "com.financial.iso20022.CashAccount"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
