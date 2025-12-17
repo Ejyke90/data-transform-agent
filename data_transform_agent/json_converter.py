@@ -5,6 +5,7 @@ This module converts XSD schema information to JSON Schema format.
 """
 
 from typing import Dict, Any, Optional
+from .utils import normalize_xsd_type
 
 
 class JSONSchemaConverter:
@@ -143,13 +144,7 @@ class JSONSchemaConverter:
         Returns:
             JSON Schema type
         """
-        # Remove namespace prefixes (both forms)
-        xsd_type = xsd_type.replace("{http://www.w3.org/2001/XMLSchema}", "")
-        
-        # Extract local name if it's a qualified name with colon
-        if ":" in xsd_type:
-            xsd_type = xsd_type.split(":")[-1]
-
+        xsd_type = normalize_xsd_type(xsd_type)
         return self.TYPE_MAPPINGS.get(xsd_type, "string")
 
     def to_json_schema(self) -> Dict[str, Any]:
