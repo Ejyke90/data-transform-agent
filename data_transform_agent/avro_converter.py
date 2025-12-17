@@ -163,12 +163,12 @@ class AvroSchemaConverter:
         Returns:
             Avro type
         """
-        # Extract local name if it's a qualified name
+        # Remove namespace prefixes (both forms)
+        xsd_type = xsd_type.replace("{http://www.w3.org/2001/XMLSchema}", "")
+        
+        # Extract local name if it's a qualified name with colon
         if ":" in xsd_type:
             xsd_type = xsd_type.split(":")[-1]
-
-        # Remove namespace prefixes
-        xsd_type = xsd_type.replace("{http://www.w3.org/2001/XMLSchema}", "")
 
         # Check if it's a reference to a complex type
         if xsd_type in self.xsd_info.get("types", {}):

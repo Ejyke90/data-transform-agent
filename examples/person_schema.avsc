@@ -14,7 +14,7 @@
       },
       {
         "name": "{http://example.com/person}age",
-        "type": "string"
+        "type": "int"
       },
       {
         "name": "{http://example.com/person}email",

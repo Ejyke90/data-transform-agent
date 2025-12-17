@@ -27,10 +27,10 @@
           "type": "string"
         },
         "{http://example.com/book}price": {
-          "type": "string"
+          "type": "number"
         },
         "{http://example.com/book}inStock": {
-          "type": "string"
+          "type": "boolean"
         },
         "{http://example.com/book}description": {
           "type": "string"

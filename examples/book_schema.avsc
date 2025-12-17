@@ -25,11 +25,11 @@
       },
       {
         "name": "{http://example.com/book}price",
-        "type": "string"
+        "type": "double"
       },
       {
         "name": "{http://example.com/book}inStock",
-        "type": "string"
+        "type": "boolean"
       },
       {
         "name": "{http://example.com/book}description",
