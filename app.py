@@ -12,6 +12,7 @@ from datetime import datetime
 
 from iso20022_agent import ISO20022SchemaAgent
 from iso20022_agent.ai_agent import SchemaAIAgent
+from iso20022_agent.semantic_matcher import SemanticFieldMatcher
 
 app = Flask(__name__)
 app.secret_key = 'iso20022-demo-secret-key'
@@ -84,91 +85,62 @@ def compare():
         xsd_agent = ISO20022SchemaAgent()
         xsd_agent.load_schema(xsd_path)
         xsd_fields = xsd_agent.extract_fields()
-        
         avro_agent = ISO20022SchemaAgent()
         avro_agent.load_schema(avro_path)
         avro_fields = avro_agent.extract_fields()
         
-        # Smart matching with multiple strategies
-        import re
+        # === SEMANTIC MATCHING WITH LLM (Primary Strategy) ===
+        # Check if user wants to use LLM for semantic matching
+        use_semantic = request.form.get('use_semantic', 'true').lower() == 'true'
         
-        def to_snake_case(name):
-            """Convert CamelCase to snake_case"""
-            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-            return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-        
-        def normalize_field_name(name):
-            """Normalize field name for comparison (lowercase, no underscores)"""
-            return name.lower().replace('_', '')
-        
-        def get_path_components(path):
-            """Extract path components from either / or . separated paths"""
-            return [p for p in re.split(r'[/.]', path) if p]
-        
-        def build_match_keys(field):
-            """Build multiple match keys for flexible matching"""
-            components = get_path_components(field.path)
-            keys = []
-            
-            # Strategy 1: Exact normalized path (. separated)
-            keys.append('.'.join(components))
-            
-            # Strategy 2: Field name only (for flat structures)
-            if components:
-                keys.append(components[-1])
-            
-            # Strategy 3: Normalized field name (handles snake_case vs CamelCase)
-            if components:
-                keys.append(normalize_field_name(components[-1]))
-            
-            # Strategy 4: Last 2 components (parent.child)
-            if len(components) >= 2:
-                keys.append('.'.join(components[-2:]))
-                keys.append(normalize_field_name('.'.join(components[-2:])))
-            
-            # Strategy 5: Last 3 components (grandparent.parent.child)
-            if len(components) >= 3:
-                keys.append('.'.join(components[-3:]))
-            
-            return keys
-        
-        # Build indexed maps with all possible match keys
-        xsd_index = {}
-        for f in xsd_fields:
-            keys = build_match_keys(f)
-            for key in keys:
-                if key not in xsd_index:
-                    xsd_index[key] = f
-        
-        avro_index = {}
-        for f in avro_fields:
-            keys = build_match_keys(f)
-            for key in keys:
-                if key not in avro_index:
-                    avro_index[key] = f
-        
-        # Match fields using multiple strategies
         matched_pairs = {}
         xsd_matched = set()
         avro_matched = set()
         
-        # Try to match each XSD field
-        for xsd_field in xsd_fields:
-            xsd_id = id(xsd_field)
-            if xsd_id in xsd_matched:
-                continue
-            
-            match_keys = build_match_keys(xsd_field)
-            for key in match_keys:
-                if key in avro_index:
-                    avro_field = avro_index[key]
-                    avro_id = id(avro_field)
-                    if avro_id not in avro_matched:
-                        matched_pairs[xsd_id] = (xsd_field, avro_field)
-                        xsd_matched.add(xsd_id)
-                        avro_matched.add(avro_id)
-                        break
+        if use_semantic:
+            try:
+                # Initialize AI agent for semantic matching
+                ai_agent = SchemaAIAgent()
+                semantic_matcher = SemanticFieldMatcher(ai_agent)
+                
+                print("🧠 Using LLM-powered semantic matching...")
+                
+                # Perform semantic matching
+                matched_pairs_result = semantic_matcher.match_fields(
+                    xsd_fields, 
+                    avro_fields, 
+                    use_llm=True,
+                    batch_size=20
+                )
+                
+                # Convert to our format
+                for xsd_id, (xsd_field, avro_field, confidence) in matched_pairs_result.items():
+                    matched_pairs[xsd_id] = (xsd_field, avro_field)
+                    xsd_matched.add(xsd_id)
+                    avro_matched.add(id(avro_field))
+                
+                print(f"✓ Semantic matching found {len(matched_pairs)} matches")
+                
+            except Exception as e:
+                print(f"⚠️ Semantic matching error, falling back to fuzzy: {e}")
+                use_semantic = False
         
+        # === FUZZY MATCHING (Fallback Strategy) ===
+        if not use_semantic:
+            print("🔤 Using fuzzy string matching...")
+            semantic_matcher = SemanticFieldMatcher(None)
+            matched_pairs_result = semantic_matcher.match_fields(
+                xsd_fields,
+                avro_fields,
+                use_llm=False
+            )
+            
+            for xsd_id, (xsd_field, avro_field, confidence) in matched_pairs_result.items():
+                matched_pairs[xsd_id] = (xsd_field, avro_field)
+                xsd_matched.add(xsd_id)
+                avro_matched.add(id(avro_field))
+        
+        # Build comparison rows
         # Build comparison rows
         comparison_rows = []
         matched_count = 0

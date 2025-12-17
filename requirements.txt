@@ -9,6 +9,8 @@ pandas>=2.0.0        # Data manipulation (for CSV processing)
 # AI/LLM dependencies
 openai>=1.0.0        # OpenAI API for LLM capabilities
 anthropic>=0.18.0    # Anthropic Claude API
+ollama>=0.1.0        # Ollama for local LLMs (free)
+requests>=2.31.0     # For OpenRouter and custom APIs
 python-dotenv>=1.0.0 # Environment variable management
 
 # Development dependencies (install with: pip install -r requirements-dev.txt)

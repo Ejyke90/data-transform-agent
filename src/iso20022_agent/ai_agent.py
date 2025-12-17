@@ -1,11 +1,13 @@
 """
 AI Agent Module for ISO 20022 Schema Analysis
 Provides LLM-powered capabilities for intelligent schema understanding
+Supports: OpenAI, Anthropic, Ollama (local), OpenRouter, HuggingFace
 """
 import os
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 import json
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -18,9 +20,10 @@ class SchemaAIAgent:
         Initialize AI agent with specified LLM provider
         
         Args:
-            provider: 'openai' or 'anthropic' (defaults to env var LLM_PROVIDER)
+            provider: 'openai', 'anthropic', 'ollama', 'openrouter', or 'huggingface'
+                     Defaults to env var LLM_PROVIDER (ollama by default - free!)
         """
-        self.provider = provider or os.getenv('LLM_PROVIDER', 'openai')
+        self.provider = provider or os.getenv('LLM_PROVIDER', 'ollama')
         self.client = None
         self._initialize_client()
         
@@ -41,6 +44,44 @@ class SchemaAIAgent:
                 raise ValueError("ANTHROPIC_API_KEY not found in environment")
             self.client = anthropic.Anthropic(api_key=api_key)
             self.model = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+            
+        elif self.provider == 'ollama':
+            # Ollama runs locally - no API key needed!
+            try:
+                import ollama
+                self.client = ollama
+                self.model = os.getenv('OLLAMA_MODEL', 'llama3.2')
+                self.base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+                # Test connection
+                try:
+                    ollama.list()
+                except:
+                    raise ValueError(
+                        "Ollama not running. Install from https://ollama.ai and run: ollama pull llama3.2"
+                    )
+            except ImportError:
+                raise ValueError("ollama package not installed. Run: pip install ollama")
+                
+        elif self.provider == 'openrouter':
+            api_key = os.getenv('OPENROUTER_API_KEY')
+            if not api_key:
+                raise ValueError(
+                    "OPENROUTER_API_KEY not found. Get free key at https://openrouter.ai/keys"
+                )
+            self.api_key = api_key
+            self.model = os.getenv('OPENROUTER_MODEL', 'meta-llama/llama-3.2-3b-instruct:free')
+            self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+            
+        elif self.provider == 'huggingface':
+            api_key = os.getenv('HUGGINGFACE_API_KEY')
+            if not api_key:
+                raise ValueError(
+                    "HUGGINGFACE_API_KEY not found. Get token at https://huggingface.co/settings/tokens"
+                )
+            self.api_key = api_key
+            self.model = os.getenv('HUGGINGFACE_MODEL', 'meta-llama/Meta-Llama-3-8B-Instruct')
+            self.base_url = f"https://api-inference.huggingface.co/models/{self.model}"
+            
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
     
@@ -76,6 +117,53 @@ class SchemaAIAgent:
                 ]
             )
             return response.content[0].text
+            
+        elif self.provider == 'ollama':
+            # Ollama local inference
+            response = self.client.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
+            return response['message']['content']
+            
+        elif self.provider == 'openrouter':
+            # OpenRouter API (compatible with OpenAI format)
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "HTTP-Referer": "https://github.com/iso20022-agent",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+            }
+            response = requests.post(self.base_url, headers=headers, json=data)
+            response.raise_for_status()
+            return response.json()['choices'][0]['message']['content']
+            
+        elif self.provider == 'huggingface':
+            # HuggingFace Inference API
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            data = {
+                "inputs": f"{system_prompt}\n\nUser: {user_prompt}\n\nAssistant:",
+                "parameters": {
+                    "max_new_tokens": 1000,
+                    "temperature": 0.7,
+                    "return_full_text": False
+                }
+            }
+            response = requests.post(self.base_url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            if isinstance(result, list):
+                return result[0].get('generated_text', '')
+            return result.get('generated_text', '')
     
     def query_schema(self, fields: List[Any], query: str) -> str:
         """
@@ -189,18 +277,29 @@ class SchemaAIAgent:
         Help users understand, analyze, and work with payment message schemas.
         Be conversational, clear, and practical."""
         
-        if self.provider == 'openai':
+        if self.provider in ['openai', 'openrouter']:
             messages = [{"role": "system", "content": system_prompt}]
             if conversation_history:
                 messages.extend(conversation_history)
             messages.append({"role": "user", "content": message})
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=0.8
-            )
-            return response.choices[0].message.content
+            if self.provider == 'openai':
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.8
+                )
+                return response.choices[0].message.content
+            else:  # openrouter
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "HTTP-Referer": "https://github.com/iso20022-agent",
+                    "Content-Type": "application/json"
+                }
+                data = {"model": self.model, "messages": messages}
+                response = requests.post(self.base_url, headers=headers, json=data)
+                response.raise_for_status()
+                return response.json()['choices'][0]['message']['content']
             
         elif self.provider == 'anthropic':
             # Anthropic doesn't use system role in messages array
@@ -216,3 +315,37 @@ class SchemaAIAgent:
                 messages=user_messages
             )
             return response.content[0].text
+            
+        elif self.provider == 'ollama':
+            messages = [{"role": "system", "content": system_prompt}]
+            if conversation_history:
+                messages.extend(conversation_history)
+            messages.append({"role": "user", "content": message})
+            
+            response = self.client.chat(model=self.model, messages=messages)
+            return response['message']['content']
+            
+        elif self.provider == 'huggingface':
+            # Build conversation context
+            conversation = f"{system_prompt}\n\n"
+            if conversation_history:
+                for msg in conversation_history:
+                    role = "User" if msg['role'] == 'user' else "Assistant"
+                    conversation += f"{role}: {msg['content']}\n\n"
+            conversation += f"User: {message}\n\nAssistant:"
+            
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            data = {
+                "inputs": conversation,
+                "parameters": {
+                    "max_new_tokens": 1000,
+                    "temperature": 0.8,
+                    "return_full_text": False
+                }
+            }
+            response = requests.post(self.base_url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            if isinstance(result, list):
+                return result[0].get('generated_text', '')
+            return result.get('generated_text', '')
