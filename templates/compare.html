@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schema Comparison - ISO 20022 Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; padding: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tab {
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+        .nav-tab:hover { background: rgba(255,255,255,0.3); }
+        .nav-tab.active { background: white; color: #667eea; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-section:hover { border-color: #764ba2; background: #f8f9ff; }
+        .upload-icon { font-size: 36px; margin-bottom: 10px; color: #667eea; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
+        .form-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; }
+        .btn {
+            width: 100%;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .loading { display: none; text-align: center; padding: 30px; }
+        .loading.active { display: block; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .results { display: none; }
+        .results.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 25px 0; }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 2em; font-weight: bold; margin-bottom: 5px; }
+        .stat-card .label { font-size: 0.9em; opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        table th {
+            background: #f8f9ff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            font-size: 0.9em;
+        }
+        table td { padding: 10px; border-bottom: 1px solid #e0e0e0; font-size: 0.85em; }
+        table tr:hover { background: #f8f9ff; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 600; }
+        .status-both { background: #e8f5e9; color: #2e7d32; }
+        .status-xsd-only { background: #fff3e0; color: #f57c00; }
+        .status-avro-only { background: #e3f2fd; color: #1976d2; }
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .download-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4); }
+        .info-box { background: #e8f4fd; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .error { background: #fee; color: #c33; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #c33; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Schema Comparison Tool</h1>
+            <p>Compare XSD and AVRO Schemas Side-by-Side</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <a href="/" class="nav-tab">Single Schema Analysis</a>
+            <a href="/compare" class="nav-tab active">Compare Schemas</a>
+        </div>
+        
+        <div class="card">
+            <form id="comparisonForm">
+                <div class="info-box">
+                    <strong>📋 Instructions:</strong> Upload or select both XSD and AVRO schemas to compare their field structures side-by-side.
+                </div>
+                
+                <div class="upload-grid">
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #667eea;">📄 XSD Schema</h3>
+                        <div class="form-group">
+                            <label>Select Existing XSD</label>
+                            <select name="existing_xsd" id="existingXSD">
+                                <option value="">-- Choose XSD --</option>
+                                {% for schema in schemas %}
+                                {% if schema.endswith('.xsd') %}
+                                <option value="{{ schema }}">{{ schema }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="text-align: center; margin: 15px 0; color: #999;"><strong>— OR —</strong></div>
+                        <div class="upload-section" id="uploadXSD">
+                            <div class="upload-icon">📤</div>
+                            <h4>Upload XSD</h4>
+                            <input type="file" name="xsd_file" id="xsdFile" accept=".xsd" style="display: none;">
+                            <p id="xsdFileName" style="margin-top: 10px; color: #667eea; font-weight: 600;"></p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #764ba2;">📋 AVRO Schema</h3>
+                        <div class="form-group">
+                            <label>Select Existing AVRO</label>
+                            <select name="existing_avro" id="existingAVRO">
+                                <option value="">-- Choose AVRO --</option>
+                                {% for schema in schemas %}
+                                {% if schema.endswith(('.avsc', '.avro')) %}
+                                <option value="{{ schema }}">{{ schema }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="text-align: center; margin: 15px 0; color: #999;"><strong>— OR —</strong></div>
+                        <div class="upload-section" id="uploadAVRO">
+                            <div class="upload-icon">📤</div>
+                            <h4>Upload AVRO</h4>
+                            <input type="file" name="avro_file" id="avroFile" accept=".avsc,.avro" style="display: none;">
+                            <p id="avroFileName" style="margin-top: 10px; color: #764ba2; font-weight: 600;"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">🔍 Compare Schemas</button>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p><strong>Comparing schemas...</strong></p>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="card">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📊 Comparison Results</h2>
+                <div class="info-box" id="comparisonInfo"></div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="number" id="totalFields">-</div><div class="label">Total Paths</div></div>
+                    <div class="stat-card"><div class="number" id="matchedFields">-</div><div class="label">Matched</div></div>
+                    <div class="stat-card"><div class="number" id="xsdOnlyFields">-</div><div class="label">XSD Only</div></div>
+                    <div class="stat-card"><div class="number" id="avroOnlyFields">-</div><div class="label">AVRO Only</div></div>
+                    <div class="stat-card"><div class="number" id="matchPercentage">-</div><div class="label">Match %</div></div>
+                </div>
+                
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="#" id="downloadLink" class="download-btn">⬇️ Download Comparison CSV</a>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px 0; color: #667eea;">📋 Sample (First 20 Fields)</h3>
+                <div style="overflow-x: auto;">
+                    <table id="comparisonTable">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>XSD Path</th>
+                                <th>AVRO Path</th>
+                                <th>XSD Mult</th>
+                                <th>AVRO Mult</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorMessage"></div>
+    </div>
+    
+    <script>
+        const uploadXSD = document.getElementById('uploadXSD');
+        const xsdFile = document.getElementById('xsdFile');
+        const xsdFileName = document.getElementById('xsdFileName');
+        const existingXSD = document.getElementById('existingXSD');
+        
+        uploadXSD.addEventListener('click', () => xsdFile.click());
+        xsdFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                xsdFileName.textContent = `Selected: ${e.target.files[0].name}`;
+                existingXSD.value = '';
+            }
+        });
+        
+        const uploadAVRO = document.getElementById('uploadAVRO');
+        const avroFile = document.getElementById('avroFile');
+        const avroFileName = document.getElementById('avroFileName');
+        const existingAVRO = document.getElementById('existingAVRO');
+        
+        uploadAVRO.addEventListener('click', () => avroFile.click());
+        avroFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                avroFileName.textContent = `Selected: ${e.target.files[0].name}`;
+                existingAVRO.value = '';
+            }
+        });
+        
+        const comparisonForm = document.getElementById('comparisonForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        comparisonForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loading.classList.add('active');
+            results.classList.remove('active');
+            errorMessage.innerHTML = '';
+            
+            try {
+                const response = await fetch('/compare', {
+                    method: 'POST',
+                    body: new FormData(comparisonForm)
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                loading.classList.remove('active');
+                displayResults(data);
+                results.classList.add('active');
+                results.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                loading.classList.remove('active');
+                errorMessage.innerHTML = `<div class="card error"><strong>Error:</strong> ${error.message}</div>`;
+                errorMessage.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        
+        function displayResults(data) {
+            document.getElementById('comparisonInfo').innerHTML = 
+                `<strong>✓ Comparison Complete!</strong><br>XSD: <code>${data.xsd_schema}</code> vs AVRO: <code>${data.avro_schema}</code>`;
+            
+            document.getElementById('totalFields').textContent = data.stats.total_fields;
+            document.getElementById('matchedFields').textContent = data.stats.matched;
+            document.getElementById('xsdOnlyFields').textContent = data.stats.xsd_only;
+            document.getElementById('avroOnlyFields').textContent = data.stats.avro_only;
+            document.getElementById('matchPercentage').textContent = data.stats.match_percentage + '%';
+            document.getElementById('downloadLink').href = data.download_url;
+            
+            const tbody = document.getElementById('comparisonTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            data.sample_rows.forEach(row => {
+                const tr = tbody.insertRow();
+                const statusClass = row.match_status === 'both' ? 'status-both' : 
+                                   row.match_status === 'xsd_only' ? 'status-xsd-only' : 'status-avro-only';
+                const statusText = row.match_status === 'both' ? '✓ Both' : 
+                                  row.match_status === 'xsd_only' ? '⚠ XSD Only' : '⚠ AVRO Only';
+                
+                tr.innerHTML = `
+                    <td><strong>${row.xsd_name || row.avro_name}</strong></td>
+                    <td><code style="font-size: 0.75em;">${row.xsd_path || '-'}</code></td>
+                    <td><code style="font-size: 0.75em;">${row.avro_path || '-'}</code></td>
+                    <td>${row.xsd_multiplicity || '-'}</td>
+                    <td>${row.avro_multiplicity || '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
