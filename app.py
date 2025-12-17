@@ -99,49 +99,153 @@ def compare():
         avro_agent.load_schema(avro_path)
         avro_fields = avro_agent.extract_fields()
         
-        # Normalize paths and match
-        def normalize_path(path, format_type):
-            if format_type == 'xsd':
-                return path.replace('/', '.')
-            return path
+        # Smart matching with multiple strategies
+        import re
         
-        xsd_map = {normalize_path(f.path, 'xsd'): f for f in xsd_fields}
-        avro_map = {f.path: f for f in avro_fields}
+        def to_snake_case(name):
+            """Convert CamelCase to snake_case"""
+            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
         
-        all_keys = set(xsd_map.keys()) | set(avro_map.keys())
+        def normalize_field_name(name):
+            """Normalize field name for comparison (lowercase, no underscores)"""
+            return name.lower().replace('_', '')
         
+        def get_path_components(path):
+            """Extract path components from either / or . separated paths"""
+            return [p for p in re.split(r'[/.]', path) if p]
+        
+        def build_match_keys(field):
+            """Build multiple match keys for flexible matching"""
+            components = get_path_components(field.path)
+            keys = []
+            
+            # Strategy 1: Exact normalized path (. separated)
+            keys.append('.'.join(components))
+            
+            # Strategy 2: Field name only (for flat structures)
+            if components:
+                keys.append(components[-1])
+            
+            # Strategy 3: Normalized field name (handles snake_case vs CamelCase)
+            if components:
+                keys.append(normalize_field_name(components[-1]))
+            
+            # Strategy 4: Last 2 components (parent.child)
+            if len(components) >= 2:
+                keys.append('.'.join(components[-2:]))
+                keys.append(normalize_field_name('.'.join(components[-2:])))
+            
+            # Strategy 5: Last 3 components (grandparent.parent.child)
+            if len(components) >= 3:
+                keys.append('.'.join(components[-3:]))
+            
+            return keys
+        
+        # Build indexed maps with all possible match keys
+        xsd_index = {}
+        for f in xsd_fields:
+            keys = build_match_keys(f)
+            for key in keys:
+                if key not in xsd_index:
+                    xsd_index[key] = f
+        
+        avro_index = {}
+        for f in avro_fields:
+            keys = build_match_keys(f)
+            for key in keys:
+                if key not in avro_index:
+                    avro_index[key] = f
+        
+        # Match fields using multiple strategies
+        matched_pairs = {}
+        xsd_matched = set()
+        avro_matched = set()
+        
+        # Try to match each XSD field
+        for xsd_field in xsd_fields:
+            xsd_id = id(xsd_field)
+            if xsd_id in xsd_matched:
+                continue
+            
+            match_keys = build_match_keys(xsd_field)
+            for key in match_keys:
+                if key in avro_index:
+                    avro_field = avro_index[key]
+                    avro_id = id(avro_field)
+                    if avro_id not in avro_matched:
+                        matched_pairs[xsd_id] = (xsd_field, avro_field)
+                        xsd_matched.add(xsd_id)
+                        avro_matched.add(avro_id)
+                        break
+        
+        # Build comparison rows
         comparison_rows = []
         matched_count = 0
         xsd_only_count = 0
         avro_only_count = 0
         
-        for key in sorted(all_keys):
-            xsd_field = xsd_map.get(key)
-            avro_field = avro_map.get(key)
-            
+        # Add matched pairs
+        for xsd_id, (xsd_field, avro_field) in matched_pairs.items():
             row = {
-                'normalized_path': key,
-                'xsd_exists': xsd_field is not None,
-                'avro_exists': avro_field is not None,
-                'xsd_name': xsd_field.name if xsd_field else '',
-                'avro_name': avro_field.name if avro_field else '',
-                'xsd_path': xsd_field.path if xsd_field else '',
-                'avro_path': avro_field.path if avro_field else '',
-                'xsd_multiplicity': xsd_field.multiplicity if xsd_field else '',
-                'avro_multiplicity': avro_field.multiplicity if avro_field else '',
-                'xsd_requirement': xsd_field.requirement.value if xsd_field else '',
-                'avro_requirement': avro_field.requirement.value if avro_field else '',
-                'match_status': 'both' if (xsd_field and avro_field) else ('xsd_only' if xsd_field else 'avro_only')
+                'normalized_path': xsd_field.path.replace('/', '.'),
+                'xsd_exists': True,
+                'avro_exists': True,
+                'xsd_name': xsd_field.name,
+                'avro_name': avro_field.name,
+                'xsd_path': xsd_field.path,
+                'avro_path': avro_field.path,
+                'xsd_multiplicity': xsd_field.multiplicity,
+                'avro_multiplicity': avro_field.multiplicity,
+                'xsd_requirement': xsd_field.requirement.value,
+                'avro_requirement': avro_field.requirement.value,
+                'match_status': 'both'
             }
-            
             comparison_rows.append(row)
-            
-            if xsd_field and avro_field:
-                matched_count += 1
-            elif xsd_field:
+            matched_count += 1
+        
+        # Add XSD-only fields
+        for xsd_field in xsd_fields:
+            if id(xsd_field) not in xsd_matched:
+                row = {
+                    'normalized_path': xsd_field.path.replace('/', '.'),
+                    'xsd_exists': True,
+                    'avro_exists': False,
+                    'xsd_name': xsd_field.name,
+                    'avro_name': '',
+                    'xsd_path': xsd_field.path,
+                    'avro_path': '',
+                    'xsd_multiplicity': xsd_field.multiplicity,
+                    'avro_multiplicity': '',
+                    'xsd_requirement': xsd_field.requirement.value,
+                    'avro_requirement': '',
+                    'match_status': 'xsd_only'
+                }
+                comparison_rows.append(row)
                 xsd_only_count += 1
-            else:
+        
+        # Add AVRO-only fields
+        for avro_field in avro_fields:
+            if id(avro_field) not in avro_matched:
+                row = {
+                    'normalized_path': avro_field.path,
+                    'xsd_exists': False,
+                    'avro_exists': True,
+                    'xsd_name': '',
+                    'avro_name': avro_field.name,
+                    'xsd_path': '',
+                    'avro_path': avro_field.path,
+                    'xsd_multiplicity': '',
+                    'avro_multiplicity': avro_field.multiplicity,
+                    'xsd_requirement': '',
+                    'avro_requirement': avro_field.requirement.value,
+                    'match_status': 'avro_only'
+                }
+                comparison_rows.append(row)
                 avro_only_count += 1
+        
+        # Sort by path for better readability
+        comparison_rows.sort(key=lambda x: x['normalized_path'])
         
         # Export CSV
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
