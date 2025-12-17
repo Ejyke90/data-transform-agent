@@ -6,6 +6,11 @@ lxml>=4.9.0          # XML processing (alternative to ElementTree with better XS
 # Optional dependencies for enhanced functionality
 pandas>=2.0.0        # Data manipulation (for CSV processing)
 
+# AI/LLM dependencies
+openai>=1.0.0        # OpenAI API for LLM capabilities
+anthropic>=0.18.0    # Anthropic Claude API
+python-dotenv>=1.0.0 # Environment variable management
+
 # Development dependencies (install with: pip install -r requirements-dev.txt)
 # pytest>=7.0.0
 # pytest-cov>=4.0.0

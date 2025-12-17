@@ -11,6 +11,7 @@ import tempfile
 from datetime import datetime
 
 from iso20022_agent import ISO20022SchemaAgent
+from iso20022_agent.ai_agent import SchemaAIAgent
 
 app = Flask(__name__)
 app.secret_key = 'iso20022-demo-secret-key'
@@ -389,6 +390,137 @@ def list_schemas():
             if f.endswith('.xsd'):
                 schemas.append(f)
     return jsonify(schemas)
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """AI chat endpoint"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        history = data.get('history', [])
+        
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Initialize AI agent
+        ai_agent = SchemaAIAgent()
+        
+        # Get response
+        response = ai_agent.chat(message, history)
+        
+        # Update history
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": response})
+        
+        return jsonify({
+            'success': True,
+            'response': response,
+            'history': history
+        })
+        
+    except ValueError as e:
+        # API key not configured
+        return jsonify({
+            'error': str(e) + '. Please configure your API keys in .env file.'
+        }), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ai/query-schema', methods=['POST'])
+def ai_query_schema():
+    """Natural language query against a schema"""
+    try:
+        data = request.get_json()
+        schema_path = data.get('schema_path')
+        query = data.get('query', '')
+        
+        if not schema_path or not query:
+            return jsonify({'error': 'Schema path and query required'}), 400
+        
+        # Load schema
+        agent = ISO20022SchemaAgent()
+        agent.load_schema(schema_path)
+        fields = agent.extract_fields()
+        
+        # Use AI to answer query
+        ai_agent = SchemaAIAgent()
+        answer = ai_agent.query_schema(fields, query)
+        
+        return jsonify({
+            'success': True,
+            'answer': answer,
+            'field_count': len(fields)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ai/suggest-mappings', methods=['POST'])
+def ai_suggest_mappings():
+    """AI-powered field mapping suggestions"""
+    try:
+        data = request.get_json()
+        xsd_path = data.get('xsd_path')
+        avro_path = data.get('avro_path')
+        
+        if not xsd_path or not avro_path:
+            return jsonify({'error': 'Both XSD and AVRO paths required'}), 400
+        
+        # Load both schemas
+        xsd_agent = ISO20022SchemaAgent()
+        xsd_agent.load_schema(xsd_path)
+        xsd_fields = xsd_agent.extract_fields()
+        
+        avro_agent = ISO20022SchemaAgent()
+        avro_agent.load_schema(avro_path)
+        avro_fields = avro_agent.extract_fields()
+        
+        # Get AI suggestions
+        ai_agent = SchemaAIAgent()
+        suggestions = ai_agent.suggest_field_mappings(xsd_fields, avro_fields)
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions,
+            'xsd_field_count': len(xsd_fields),
+            'avro_field_count': len(avro_fields)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ai/generate-docs', methods=['POST'])
+def ai_generate_docs():
+    """Generate documentation for schema using AI"""
+    try:
+        data = request.get_json()
+        schema_path = data.get('schema_path')
+        schema_name = data.get('schema_name', 'Schema')
+        
+        if not schema_path:
+            return jsonify({'error': 'Schema path required'}), 400
+        
+        # Load schema
+        agent = ISO20022SchemaAgent()
+        agent.load_schema(schema_path)
+        fields = agent.extract_fields()
+        
+        # Generate docs with AI
+        ai_agent = SchemaAIAgent()
+        documentation = ai_agent.generate_documentation(fields, schema_name)
+        
+        return jsonify({
+            'success': True,
+            'documentation': documentation,
+            'field_count': len(fields)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/health')
